@@ -22,10 +22,11 @@ setup(
     install_requires=[
         'django-environ~=0.4.3',
         'django>=1.8.0',
-        'django-minimal-user==0.0.1',
-        'django-anymail[mailgun]~=0.5.0',
-        'django-extensions',
-        'celery[redis]',
+
+        # 'django-minimal-user==0.0.1',
+        # 'django-anymail[mailgun]~=0.5.0',
+        # 'django-extensions',
+        # 'celery[redis]',
     ],
     package_dir={'': 'src'},
     include_package_data=True,
