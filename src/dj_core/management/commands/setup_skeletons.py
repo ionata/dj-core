@@ -1,7 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from django.core.management.base import BaseCommand
-from wagtail.utils.apps import get_app_submodules
+from dj_core.utils import get_app_submodules
 
 
 class Command(BaseCommand):
