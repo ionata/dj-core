@@ -11,9 +11,9 @@ from .utils import AttrDict
 
 class BaseConfig(object):
     defaults = {
-        'DJCORE_APP_NAME': (str, 'dj_core'),
-        'DJCORE_APP_CONF': (str, ''),
-        'DJCORE_DEBUG': (bool, False),
+        'DJCORE_APP_NAME': 'dj_core',
+        'DJCORE_APP_CONF': '',
+        'DJCORE_DEBUG': False,
     }
 
     def __init__(self, *args, **kwargs):
@@ -69,8 +69,12 @@ class Config(BaseConfig):
             'DJCORE_ANONYMOUS_USER_ID': -1,
             'DJCORE_AUTHENTICATION_BACKENDS': ['django.contrib.auth.backends.ModelBackend'],
             'DJCORE_AUTH_USER_MODEL': 'minimal_user.User',
-            'DJCORE_BROKER_URL': 'redis://',
+            'DJCORE_AWS_ACCESS_KEY_ID': '',
+            'DJCORE_AWS_S3_REGION_NAME': '',
+            'DJCORE_AWS_SECRET_ACCESS_KEY': '',
+            'DJCORE_AWS_STORAGE_BUCKET_NAME': '',
             'DJCORE_BROKER_TRANSPORT_OPTIONS': {'visibility_timeout': 3600},  # 1 hour.
+            'DJCORE_BROKER_URL': 'redis://',
             'DJCORE_CELERY_APP_NAME': '$DJCORE_APP_NAME',
             'DJCORE_CELERY_RESULT_BACKEND': '$DJCORE_BROKER_URL',
             'DJCORE_CORS_ORIGIN_ALLOW_ALL': False,
@@ -78,6 +82,7 @@ class Config(BaseConfig):
             'DJCORE_CSRF_COOKIE_PATH': '/backend/',
             'DJCORE_CSRF_COOKIE_SECURE': True,
             'DJCORE_CSRF_TRUSTED_ORIGINS': '$DJCORE_CORS_ORIGIN_WHITELIST',
+            'DJCORE_DEFAULT_FILE_STORAGE': 'dj_core.storage.MediaS3',
             'DJCORE_EMAIL_BACKEND': 'anymail.backends.mailgun.MailgunBackend',
             'DJCORE_INTERNAL_IPS': ['127.0.0.1'],
             'DJCORE_LANGUAGE_CODE': 'en-AU',
@@ -88,6 +93,7 @@ class Config(BaseConfig):
             'DJCORE_SESSION_COOKIE_PATH': '/backend/',
             'DJCORE_SESSION_COOKIE_SECURE': True,
             'DJCORE_SITE_ID': 1,
+            'DJCORE_STATICFILES_STORAGE': 'dj_core.storage.StaticS3',
             'DJCORE_STATIC_URL': '/assets/static/',
             'DJCORE_TIME_ZONE': 'UTC',
             'DJCORE_USE_I18N': True,
@@ -193,7 +199,7 @@ class Config(BaseConfig):
             'minimal_user',
             'anymail',
             'django_extensions',
-            'django_storages',
+            'storages',
         ] if self.can_import(x)] + ([
             'debug_toolbar',
             'debug_toolbar_line_profiler',
