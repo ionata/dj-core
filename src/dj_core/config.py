@@ -2,11 +2,20 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from importlib import import_module
+from os import path
 
 from django.utils import six
 from environ import Env
 
 from .utils import AttrDict
+
+
+def _can_import(app_name):
+    try:
+        import_module(app_name)
+    except ImportError:
+        return False
+    return True
 
 
 class BaseConfig(object):
@@ -20,14 +29,6 @@ class BaseConfig(object):
         self._env = None
         self.settings = self.get_settings()
         super(BaseConfig, self).__init__(*args, **kwargs)
-
-    @staticmethod
-    def can_import(app_name):
-        try:
-            import_module(app_name)
-        except ImportError:
-            return False
-        return True
 
     @property
     def env(self):
@@ -67,7 +68,7 @@ class BaseConfig(object):
 
 
 class Config(BaseConfig):
-    defaults_dict = {
+    defaults_dict = AttrDict({
         'simple': {
             'DJCORE_ALLOWED_HOSTS': ['localhost'],
             'DJCORE_ANONYMOUS_USER_ID': -1,
@@ -99,25 +100,33 @@ class Config(BaseConfig):
             'DJCORE_USE_I18N': True,
             'DJCORE_USE_L10N': True,
             'DJCORE_USE_TZ': True,
+            'DJCORE_VAR_ROOT': '/var',
             'DJCORE_WSGI_APPLICATION': 'dj_core.wsgi.application',
         },
         'djcore': {
             'DJCORE_ADMIN_ENABLED': True,
-            # 'DJCORE_ADMIN_USER': {'email': '', 'password': ''},
+            'DJCORE_ADMIN_USER': {},
             'DJCORE_FRONTEND_URL': 'https://localhost',
             'DJCORE_SITE_URL': 'https://localhost',
             'DJCORE_USE_DJDT': False,
             'DJCORE_WHITELIST_SITE_URL': True,
         },
         'complex': {
-            'DJCORE_CELERY_APP_NAME': '',
-            'DJCORE_CELERY_RESULT_BACKEND': '',
-            'DJCORE_CORS_ORIGIN_WHITELIST': '',
-            'DJCORE_CSRF_TRUSTED_ORIGINS': '',
-            'DJCORE_SITE_NAME': '',
             'DJCORE_ADMINS': [],
             'DJCORE_MANAGERS': [],
+            'DJCORE_SITE_NAME': '',
         },
+        'proxied': AttrDict([  # order is important
+            ('DJCORE_CELERY_APP_NAME', ('', lambda conf: conf.DJCORE.APP_NAME)),
+            ('DJCORE_CELERY_RESULT_BACKEND', ('', lambda conf: conf.BROKER_URL)),
+            ('DJCORE_CORS_ORIGIN_WHITELIST', ('', lambda conf: conf.ALLOWED_HOSTS)),
+            ('DJCORE_CSRF_TRUSTED_ORIGINS', ('', lambda conf: conf.CORS_ORIGIN_WHITELIST)),
+            ('DJCORE_CACHE_ROOT', ('', lambda conf: path.join(conf.VAR_ROOT, 'cache'))),
+            ('DJCORE_LOG_ROOT', ('', lambda conf: path.join(conf.VAR_ROOT, 'log'))),
+            ('DJCORE_DOCUMENT_ROOT', ('', lambda conf: path.join(conf.VAR_ROOT, 'www'))),
+            ('DJCORE_STATIC_ROOT', ('', lambda conf: path.join(conf.DOCUMENT_ROOT, 'static'))),
+            ('DJCORE_MEDIA_ROOT', ('', lambda conf: path.join(conf.DOCUMENT_ROOT, 'media'))),
+        ]),
         'dev': {
             'DJCORE_ADMIN_USER': {'email': 'test@example.com', 'password': 'password'},
             'DJCORE_ALLOWED_HOSTS': ['*'],
@@ -134,7 +143,7 @@ class Config(BaseConfig):
             'DJCORE_SESSION_COOKIE_SECURE': False,
             'DJCORE_USE_DJDT': True,
         },
-    }
+    })
 
     @property
     def djdt_enabled(self):
@@ -148,24 +157,24 @@ class Config(BaseConfig):
         val = self.env.get_value(key, type(default), default)
         return default if val in [[], None, ''] else val
 
-    def get_env_vals(self, env_keys):
-        return AttrDict({
-            key[len('DJCORE_'):]: self.env(key) for key in env_keys
-        })
+    def get_env_vals(self, keys):
+        return AttrDict({key[7:]: self.env(key) for key in keys})  # remove DJCORE_
 
     def get_defaults(self):
         defaults = super(Config, self).get_defaults()
-        defaults.update(self.defaults_dict['simple'])
-        defaults.update(self.defaults_dict['djcore'])
-        defaults.update(self.defaults_dict['complex'])
+        defaults.update(self.defaults_dict.simple)
+        defaults.update(self.defaults_dict.djcore)
+        defaults.update(self.defaults_dict.complex)
+        defaults.update({k: v[0] for k, v in self.defaults_dict.proxied.items()})
         if self.debug:
-            defaults.update(self.defaults_dict['dev'])
+            defaults.update(self.defaults_dict.dev)
         return defaults
 
     def get_settings(self):
         settings = super(Config, self).get_settings()
         settings.update(self.get_core_settings())
         settings.DJCORE = self.get_djcore_settings(settings)
+        self.apply_proxied_settings(settings)
         settings.DATABASES = self.get_databases(settings)
         settings.INSTALLED_APPS = self.get_installed_apps(settings)
         settings.MIDDLEWARE = self.get_middleware(settings)
@@ -174,29 +183,25 @@ class Config(BaseConfig):
         return settings
 
     def get_core_settings(self):
-        conf = self.get_env_vals(self.defaults_dict['simple'])
-        conf['ALLOWED_HOSTS'] += conf['INTERNAL_IPS']
-        conf.CELERY_APP_NAME = self.get_env(
-            'DJCORE_CELERY_APP_NAME', self.env('DJCORE_APP_NAME'))
-        conf.CELERY_RESULT_BACKEND = self.get_env(
-            'DJCORE_CELERY_RESULT_BACKEND', conf['BROKER_URL'])
-        conf.CORS_ORIGIN_WHITELIST = self.env(
-            'DJCORE_CORS_ORIGIN_WHITELIST', conf['ALLOWED_HOSTS'])
-        conf.CSRF_TRUSTED_ORIGINS = self.env(
-            'DJCORE_CSRF_TRUSTED_ORIGINS', conf.CORS_ORIGIN_WHITELIST)
-        if self.env('DJCORE_WHITELIST_SITE_URL'):
-            conf['ALLOWED_HOSTS'] += self.site_url.netloc
-            conf['CORS_ORIGIN_WHITELIST'] += self.site_url.netloc
-            conf['CSRF_TRUSTED_ORIGINS'] += self.site_url.netloc
+        conf = self.get_env_vals(self.defaults_dict.simple)
         if self.djdt_enabled:
-            conf['DEBUG_TOOLBAR_CONFIG'] = {
+            conf.DEBUG_TOOLBAR_CONFIG = {
                 'SHOW_COLLAPSED': True,
                 'SHOW_TOOLBAR_CALLBACK': lambda request: True
             }
         return conf
 
+    def apply_proxied_settings(self, conf):
+        conf.ALLOWED_HOSTS = conf.ALLOWED_HOSTS + conf.INTERNAL_IPS
+        for key, (_, call) in self.defaults_dict.proxied.items():
+            conf[key[7:]] = call(conf)
+        if self.env('DJCORE_WHITELIST_SITE_URL'):
+            conf.ALLOWED_HOSTS += self.site_url.netloc
+            conf.CORS_ORIGIN_WHITELIST += self.site_url.netloc
+            conf.CSRF_TRUSTED_ORIGINS += self.site_url.netloc
+
     def get_djcore_settings(self, settings):  # pylint: disable=unused-argument
-        conf = self.get_env_vals(self.defaults_dict['djcore'])
+        conf = self.get_env_vals(self.defaults_dict.djcore)
         conf.update({
             'SITE_DOMAIN': self.site_url.netloc,
             'APP_NAME': self.env('DJCORE_APP_NAME'),
@@ -226,7 +231,7 @@ class Config(BaseConfig):
             'anymail',
             'django_extensions',
             'storages',
-        ] if self.can_import(x)] + ([
+        ] if _can_import(x)] + ([
             'debug_toolbar',
             'debug_toolbar_line_profiler',
         ] if self.djdt_enabled else [])
@@ -236,7 +241,9 @@ class Config(BaseConfig):
             'debug_toolbar.middleware.DebugToolbarMiddleware'
         ] if self.djdt_enabled else []) + [
             'django.contrib.sessions.middleware.SessionMiddleware',
-            'corsheaders.middleware.CorsMiddleware',
+        ] + ([
+            'corsheaders.middleware.CorsMiddleware'
+        ] if _can_import('corsheaders') else []) + [
             'django.middleware.common.CommonMiddleware',
             'django.middleware.csrf.CsrfViewMiddleware',
             'django.contrib.auth.middleware.AuthenticationMiddleware',
