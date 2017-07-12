@@ -40,16 +40,20 @@ class BaseConfig(object):
         return self.env('DJCORE_APP_NAME')
 
     @property
-    def app_conf(self):
+    def app_conf_str(self):
         val = self.env('DJCORE_APP_CONF')
         if val == '':
             val = '{}.config.Config'.format(self.app_name)
-        module, conf = val.rsplit('.', 1)
+        return val
+
+    @property
+    def app_conf(self):
+        module, conf = self.app_conf_str.rsplit('.', 1)
         return getattr(import_module(module), conf)
 
     @property
     def debug(self):
-        return self.env('DJCORE_DEBUG')
+        return Env().str('DJCORE_DEBUG', False)
 
     @property
     def types(self):
@@ -63,7 +67,7 @@ class BaseConfig(object):
 
 
 class Config(BaseConfig):
-    defaults = {
+    defaults_dict = {
         'simple': {
             'DJCORE_ALLOWED_HOSTS': ['localhost'],
             'DJCORE_ANONYMOUS_USER_ID': -1,
@@ -75,13 +79,9 @@ class Config(BaseConfig):
             'DJCORE_AWS_STORAGE_BUCKET_NAME': '',
             'DJCORE_BROKER_TRANSPORT_OPTIONS': {'visibility_timeout': 3600},  # 1 hour.
             'DJCORE_BROKER_URL': 'redis://',
-            'DJCORE_CELERY_APP_NAME': '$DJCORE_APP_NAME',
-            'DJCORE_CELERY_RESULT_BACKEND': '$DJCORE_BROKER_URL',
             'DJCORE_CORS_ORIGIN_ALLOW_ALL': False,
-            'DJCORE_CORS_ORIGIN_WHITELIST': '$DJCORE_ALLOWED_HOSTS',
             'DJCORE_CSRF_COOKIE_PATH': '/backend/',
             'DJCORE_CSRF_COOKIE_SECURE': True,
-            'DJCORE_CSRF_TRUSTED_ORIGINS': '$DJCORE_CORS_ORIGIN_WHITELIST',
             'DJCORE_DEFAULT_FILE_STORAGE': 'dj_core.storage.MediaS3',
             'DJCORE_EMAIL_BACKEND': 'anymail.backends.mailgun.MailgunBackend',
             'DJCORE_INTERNAL_IPS': ['127.0.0.1'],
@@ -103,14 +103,18 @@ class Config(BaseConfig):
         },
         'djcore': {
             'DJCORE_ADMIN_ENABLED': True,
-            'DJCORE_ADMIN_USER': {'email': '', 'password': ''},
+            # 'DJCORE_ADMIN_USER': {'email': '', 'password': ''},
             'DJCORE_FRONTEND_URL': 'https://localhost',
-            'DJCORE_SITE_NAME': '$DJCORE_APP_NAME',
             'DJCORE_SITE_URL': 'https://localhost',
             'DJCORE_USE_DJDT': False,
             'DJCORE_WHITELIST_SITE_URL': True,
         },
         'complex': {
+            'DJCORE_CELERY_APP_NAME': '',
+            'DJCORE_CELERY_RESULT_BACKEND': '',
+            'DJCORE_CORS_ORIGIN_WHITELIST': '',
+            'DJCORE_CSRF_TRUSTED_ORIGINS': '',
+            'DJCORE_SITE_NAME': '',
             'DJCORE_ADMINS': [],
             'DJCORE_MANAGERS': [],
         },
@@ -120,7 +124,7 @@ class Config(BaseConfig):
             'DJCORE_AWS_ACCESS_KEY_ID': 'djangos3',
             'DJCORE_AWS_S3_ENDPOINT_URL': 'http://minio:9000',
             'DJCORE_AWS_SECRET_ACCESS_KEY': 'djangos3',
-            'DJCORE_AWS_STORAGE_BUCKET_NAME': '$DJCORE_APP_NAME',
+            'DJCORE_AWS_STORAGE_BUCKET_NAME': 'django',
             'DJCORE_BROKER_URL': 'redis://redis',
             'DJCORE_CELERY_RESULT_BACKEND': 'redis://redis',
             'DJCORE_CORS_ORIGIN_ALLOW_ALL': True,
@@ -140,13 +144,22 @@ class Config(BaseConfig):
     def site_url(self):
         return six.moves.urllib.parse.urlparse(self.env('DJCORE_SITE_URL'))  # pylint: disable=no-member
 
+    def get_env(self, key, default):
+        val = self.env.get_value(key, type(default), default)
+        return default if val in [[], None, ''] else val
+
+    def get_env_vals(self, env_keys):
+        return AttrDict({
+            key[len('DJCORE_'):]: self.env(key) for key in env_keys
+        })
+
     def get_defaults(self):
         defaults = super(Config, self).get_defaults()
-        defaults.update(self.defaults['simple'])
-        defaults.update(self.defaults['djcore'])
-        defaults.update(self.defaults['complex'])
+        defaults.update(self.defaults_dict['simple'])
+        defaults.update(self.defaults_dict['djcore'])
+        defaults.update(self.defaults_dict['complex'])
         if self.debug:
-            defaults.update(self.defaults['dev'])
+            defaults.update(self.defaults_dict['dev'])
         return defaults
 
     def get_settings(self):
@@ -161,26 +174,35 @@ class Config(BaseConfig):
         return settings
 
     def get_core_settings(self):
-        conf = {self.env(key) for key in self.defaults['simple']}
-        conf.ALLOWED_HOSTS += conf.INTERNAL_IPS
+        conf = self.get_env_vals(self.defaults_dict['simple'])
+        conf['ALLOWED_HOSTS'] += conf['INTERNAL_IPS']
+        conf.CELERY_APP_NAME = self.get_env(
+            'DJCORE_CELERY_APP_NAME', self.env('DJCORE_APP_NAME'))
+        conf.CELERY_RESULT_BACKEND = self.get_env(
+            'DJCORE_CELERY_RESULT_BACKEND', conf['BROKER_URL'])
+        conf.CORS_ORIGIN_WHITELIST = self.env(
+            'DJCORE_CORS_ORIGIN_WHITELIST', conf['ALLOWED_HOSTS'])
+        conf.CSRF_TRUSTED_ORIGINS = self.env(
+            'DJCORE_CSRF_TRUSTED_ORIGINS', conf.CORS_ORIGIN_WHITELIST)
         if self.env('DJCORE_WHITELIST_SITE_URL'):
-            conf.ALLOWED_HOSTS += self.site_url.netloc
-            conf.CORS_ORIGIN_WHITELIST += self.site_url.netloc
-            conf.CSRF_TRUSTED_ORIGINS += self.site_url.netloc
+            conf['ALLOWED_HOSTS'] += self.site_url.netloc
+            conf['CORS_ORIGIN_WHITELIST'] += self.site_url.netloc
+            conf['CSRF_TRUSTED_ORIGINS'] += self.site_url.netloc
         if self.djdt_enabled:
-            conf.DEBUG_TOOLBAR_CONFIG = {
+            conf['DEBUG_TOOLBAR_CONFIG'] = {
                 'SHOW_COLLAPSED': True,
                 'SHOW_TOOLBAR_CALLBACK': lambda request: True
             }
         return conf
 
     def get_djcore_settings(self, settings):  # pylint: disable=unused-argument
-        conf = AttrDict({self.env(key) for key in self.defaults['djcore']})
+        conf = self.get_env_vals(self.defaults_dict['djcore'])
         conf.update({
             'SITE_DOMAIN': self.site_url.netloc,
             'APP_NAME': self.env('DJCORE_APP_NAME'),
             'APP_CONF': self.env('DJCORE_APP_CONF'),
         })
+        conf.SITE_NAME = self.get_env('DJCORE_SITE_NAME', conf.APP_NAME)
         return conf
 
     def get_databases(self, settings):  # pylint: disable=unused-argument
