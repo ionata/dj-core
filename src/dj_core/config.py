@@ -120,8 +120,8 @@ class Config(BaseConfig):
         'proxied': AttrDict([  # order is important
             ('DJCORE_CELERY_APP_NAME', ('', lambda conf: conf.DJCORE.APP_NAME)),
             ('DJCORE_CELERY_RESULT_BACKEND', ('', lambda conf: conf.BROKER_URL)),
-            ('DJCORE_CORS_ORIGIN_WHITELIST', ('', lambda conf: conf.ALLOWED_HOSTS)),
-            ('DJCORE_CSRF_TRUSTED_ORIGINS', ('', lambda conf: conf.CORS_ORIGIN_WHITELIST)),
+            ('DJCORE_CORS_ORIGIN_WHITELIST', ([], lambda conf: conf.ALLOWED_HOSTS)),
+            ('DJCORE_CSRF_TRUSTED_ORIGINS', ([], lambda conf: conf.CORS_ORIGIN_WHITELIST)),
             ('DJCORE_CACHE_ROOT', ('', lambda conf: path.join(conf.VAR_ROOT, 'cache'))),
             ('DJCORE_LOG_ROOT', ('', lambda conf: path.join(conf.VAR_ROOT, 'log'))),
             ('DJCORE_DOCUMENT_ROOT', ('', lambda conf: path.join(conf.VAR_ROOT, 'www'))),
@@ -197,9 +197,13 @@ class Config(BaseConfig):
         for key, (_, call) in self.defaults_dict.proxied.items():
             conf[key[7:]] = call(conf)
         if self.env('DJCORE_WHITELIST_SITE_URL'):
-            conf.ALLOWED_HOSTS += self.site_url.netloc
-            conf.CORS_ORIGIN_WHITELIST += self.site_url.netloc
-            conf.CSRF_TRUSTED_ORIGINS += self.site_url.netloc
+            conf.ALLOWED_HOSTS += [self.site_url.netloc]
+            conf.CSRF_TRUSTED_ORIGINS += [
+                x for x in conf.ALLOWED_HOSTS
+                if x not in conf.CSRF_TRUSTED_ORIGINS]
+            conf.CORS_ORIGIN_WHITELIST += [
+                x for x in conf.CSRF_TRUSTED_ORIGINS
+                if x not in conf.CORS_ORIGIN_WHITELIST]
 
     def get_djcore_settings(self, settings):  # pylint: disable=unused-argument
         conf = self.get_env_vals(self.defaults_dict.djcore)
