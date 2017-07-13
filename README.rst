@@ -35,7 +35,10 @@ set the environment variable `DJCORE_AUTH_USER_MODEL` to your model of choice
 django-storages
 ~~~~~~~~~~~~~~~
 set the environment variable `DJCORE_DEFAULT_FILE_STORAGE` to your engine of choice
+
 set the environment variable `DJCORE_STATICFILES_STORAGE` to your engine of choice
 
+
 Note that the default is to not provide access to the underlying filesystem.
+
 If you require that, update your settings as applicable
