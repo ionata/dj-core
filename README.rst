@@ -12,6 +12,7 @@ The default configuration makes use of the following optional packages:
 - django-storages
 
 The default configuration also configures the following, but does not require them:
+
 - django-extensions
 - django-cors-headers
 - celery[redis]
