@@ -76,6 +76,7 @@ class Config(BaseConfig):
             'DJCORE_AUTH_USER_MODEL': 'minimal_user.User',
             'DJCORE_AWS_ACCESS_KEY_ID': '',
             'DJCORE_AWS_S3_ENDPOINT_URL': '',
+            'DJCORE_AWS_S3_REGION_NAME': '',
             'DJCORE_AWS_SECRET_ACCESS_KEY': '',
             'DJCORE_AWS_STORAGE_BUCKET_NAME': '',
             'DJCORE_BROKER_TRANSPORT_OPTIONS': {'visibility_timeout': 3600},  # 1 hour.

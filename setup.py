@@ -3,8 +3,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from setuptools import setup, find_packages
 
-from src.dj_core import __version__
-
 
 with open('README.rst', 'r') as f:
     readme = f.read()
@@ -12,7 +10,7 @@ with open('README.rst', 'r') as f:
 
 setup(
     name='dj-core',
-    version=__version__,
+    version='0.0.1',
     description='A self-contained and extensible Django environment',
     long_description=readme,
     author='Ionata Digital',
