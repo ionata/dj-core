@@ -10,7 +10,7 @@ with open('README.rst', 'r') as f:
 
 setup(
     name='dj-core',
-    version='0.0.1',
+    version='0.0.2',
     description='A self-contained and extensible Django environment',
     long_description=readme,
     author='Ionata Digital',
