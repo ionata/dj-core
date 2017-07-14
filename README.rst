@@ -1,14 +1,14 @@
 dj-core
 =======
 
-.. image:: https://img.shields.io/pypi/v/dj-core.svg
-   :target: https://pypi.python.org/pypi/dj-core
-
+.. image:: https://pyup.io/repos/github/ionata/dj-core/python-3-shield.svg
+  :target: https://pyup.io/repos/github/ionata/dj-core/
 .. image:: https://pyup.io/repos/github/ionata/dj-core/shield.svg
-     :target: https://pyup.io/repos/github/ionata/dj-core/
-
+  :target: https://pyup.io/repos/github/ionata/dj-core/
+.. image:: https://img.shields.io/pypi/v/dj-core.svg
+  :target: https://pypi.python.org/pypi/dj-core
 .. image:: https://img.shields.io/badge/code%20style-pep8-green.svg
-   :target: https://www.python.org/dev/peps/pep-0008/
+  :target: https://www.python.org/dev/peps/pep-0008/
 
 A self-contained and extensible django environment.
 
