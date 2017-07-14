@@ -1,0 +1,4 @@
+requirements:
+  - requirements-production.txt:
+    updates: insecure
+    pin: True
