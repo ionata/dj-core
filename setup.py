@@ -1,11 +1,13 @@
 #!/usr/bin/env python
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
+
+import io
 
 from setuptools import setup, find_packages
 
 
-with open('README.rst', 'r') as f:
-    readme = f.read()
+with io.open('README.rst', encoding='utf-8') as handle:
+    readme = handle.read()
 
 
 setup(

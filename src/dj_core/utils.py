@@ -53,7 +53,11 @@ def import_from_string(value):
 
 class AttrDict(OrderedDict):
     def __getattr__(self, key):
-        return self[key]
+        if key[0] != '_':
+            return self[key]
+        return super(AttrDict, self).__getattr__(key)
 
     def __setattr__(self, key, val):
-        self[key] = val
+        if key[0] != '_':
+            self[key] = val
+        return super(AttrDict, self).__setattr__(key, val)
