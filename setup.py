@@ -10,6 +10,10 @@ with io.open('README.rst', encoding='utf-8') as handle:
     readme = handle.read()
 
 
+with io.open('requirements-production.txt', encoding='utf-8') as handle:
+    requirements = [line.strip('\n').strip() for line in handle.readlines()]
+
+
 setup(
     name='dj-core',
     version='0.0.2',
@@ -19,10 +23,7 @@ setup(
     author_email='webmaster@ionata.com.au',
     url='https://github.com/ionata/dj-core',
     packages=find_packages('src'),
-    install_requires=[
-        'django-environ~=0.4.3',
-        'django>=1.8.0',
-    ],
+    install_requires=requirements,
     package_dir={'': 'src'},
     include_package_data=True,
     classifiers=[

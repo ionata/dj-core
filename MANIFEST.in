@@ -1,1 +1,2 @@
+include requirements-production.txt
 recursive-include src/dj_core/ *
