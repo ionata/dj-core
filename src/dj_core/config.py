@@ -45,7 +45,7 @@ class BaseConfig(object):
         val = self.env('DJCORE_APP_CONF')
         if val == '':
             val = '{}.config.Config'.format(self.app_name)
-        return val
+        return val.replace('-', '_')
 
     @property
     def app_conf(self):
