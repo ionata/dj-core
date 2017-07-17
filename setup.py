@@ -16,7 +16,7 @@ with io.open('requirements-production.txt', encoding='utf-8') as handle:
 
 setup(
     name='dj-core',
-    version='0.0.2',
+    version='0.0.3',
     description='A self-contained and extensible Django environment',
     long_description=readme,
     author='Ionata Digital',
