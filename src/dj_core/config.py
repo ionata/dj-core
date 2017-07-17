@@ -233,6 +233,7 @@ class Config(BaseConfig):
             'django.contrib.sites',
         ] + [x for x in [
             'minimal_user',
+            'corsheaders',
             'anymail',
             'django_extensions',
             'storages',
