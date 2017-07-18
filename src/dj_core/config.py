@@ -92,6 +92,7 @@ class Config(BaseConfig):
             'DJCORE_MEDIA_URL': '/assets/media/',
             'DJCORE_ROOT_URLCONF': 'dj_core.urls',
             'DJCORE_SECRET_KEY': '',
+            'DJCORE_SECURE_PROXY_SSL_HEADER': ('HTTP_X_FORWARDED_PROTO', 'https'),
             'DJCORE_SESSION_COOKIE_PATH': '/backend/',
             'DJCORE_SESSION_COOKIE_SECURE': True,
             'DJCORE_SITE_ID': 1,
