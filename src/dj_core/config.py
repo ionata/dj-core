@@ -79,8 +79,8 @@ class Config(BaseConfig):
             'DJCORE_AWS_S3_REGION_NAME': '',
             'DJCORE_AWS_SECRET_ACCESS_KEY': '',
             'DJCORE_AWS_STORAGE_BUCKET_NAME': '',
-            'DJCORE_BROKER_TRANSPORT_OPTIONS': {'visibility_timeout': 3600},  # 1 hour.
-            'DJCORE_BROKER_URL': 'redis://',
+            'DJCORE_CELERY_BROKER_TRANSPORT_OPTIONS': {'visibility_timeout': 3600},  # 1 hour.
+            'DJCORE_CELERY_BROKER_URL': 'redis://',
             'DJCORE_CORS_ORIGIN_ALLOW_ALL': False,
             'DJCORE_CSRF_COOKIE_PATH': '/backend/',
             'DJCORE_CSRF_COOKIE_SECURE': True,
@@ -120,7 +120,7 @@ class Config(BaseConfig):
         },
         'proxied': AttrDict([  # order is important
             ('DJCORE_CELERY_APP_NAME', ('', lambda conf: conf.DJCORE.APP_NAME)),
-            ('DJCORE_CELERY_RESULT_BACKEND', ('', lambda conf: conf.BROKER_URL)),
+            ('DJCORE_CELERY_RESULT_BACKEND', ('', lambda conf: conf.CELERY_BROKER_URL)),
             ('DJCORE_CORS_ORIGIN_WHITELIST', ([], lambda conf: conf.ALLOWED_HOSTS)),
             ('DJCORE_CSRF_TRUSTED_ORIGINS', ([], lambda conf: conf.CORS_ORIGIN_WHITELIST)),
             ('DJCORE_CACHE_ROOT', ('', lambda conf: path.join(conf.VAR_ROOT, 'cache'))),
@@ -136,13 +136,14 @@ class Config(BaseConfig):
             'DJCORE_AWS_S3_ENDPOINT_URL': 'http://minio:9000',
             'DJCORE_AWS_SECRET_ACCESS_KEY': 'djangos3',
             'DJCORE_AWS_STORAGE_BUCKET_NAME': 'django',
-            'DJCORE_BROKER_URL': 'redis://redis',
+            'DJCORE_CELERY_BROKER_URL': 'redis://redis',
             'DJCORE_CELERY_RESULT_BACKEND': 'redis://redis',
             'DJCORE_CORS_ORIGIN_ALLOW_ALL': True,
             'DJCORE_CSRF_COOKIE_SECURE': False,
             'DJCORE_DATABASE_URL': 'postgis://django:django@db:5432/django',
             'DJCORE_EMAIL_BACKEND': 'django.core.mail.backends.console.EmailBackend',
             'DJCORE_SESSION_COOKIE_SECURE': False,
+            'DJCORE_TEMPLATE_DEBUG': True,
             'DJCORE_USE_DJDT': True,
         },
     })
