@@ -1,2 +1,2 @@
-django-environ==0.4.3
+django-environ==0.4.4
 django>=1.8.0
