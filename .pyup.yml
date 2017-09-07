@@ -1,2 +1,8 @@
-update: insecure
-pin: True
+requirements:
+  - requirements-default.txt:
+      schedule: "every week"
+      update: all
+      pin: True
+  - requirements-production.txt:
+      update: insecure
+      pin: True

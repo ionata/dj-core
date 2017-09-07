@@ -6,24 +6,26 @@ import io
 from setuptools import setup, find_packages
 
 
-with io.open('README.md', encoding='utf-8') as handle:
-    readme = handle.read()
-
-
-with io.open('requirements-production.txt', encoding='utf-8') as handle:
-    requirements = [line.strip('\n').strip() for line in handle.readlines()]
+def _read(filename, as_lines=True):
+    with io.open(filename, encoding='utf-8') as handle:
+        if as_lines:
+            return [line.strip('\n').strip() for line in handle.readlines()]
+        return handle.read()
 
 
 setup(
     name='dj-core',
     version='0.0.4',
     description='A self-contained and extensible Django environment',
-    long_description=readme,
+    long_description=_read('README.md', as_lines=False),
     author='Ionata Digital',
     author_email='webmaster@ionata.com.au',
     url='https://github.com/ionata/dj-core',
     packages=find_packages('src'),
-    install_requires=requirements,
+    install_requires=_read('requirements-production.txt'),
+    extras_require={
+        'defaults': _read('requirements-default.txt'),
+    },
     package_dir={'': 'src'},
     include_package_data=True,
     classifiers=[
