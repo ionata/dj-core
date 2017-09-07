@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-from .config import BaseConfig
+from dj_core.config import get_conf
 
 
-globals().update(BaseConfig().app_conf().settings)  # pylint: disable=not-callable
+globals().update(get_conf().settings)  # pylint: disable=not-callable

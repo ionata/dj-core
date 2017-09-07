@@ -7,7 +7,7 @@ from os import path
 from django.utils import six
 from environ import Env
 
-from .utils import AttrDict
+from dj_core.utils import AttrDict
 
 
 def _can_import(app_name):
@@ -27,7 +27,6 @@ class BaseConfig(object):
 
     def __init__(self, *args, **kwargs):
         self._env = None
-        self.settings = self.get_settings()
         super(BaseConfig, self).__init__(*args, **kwargs)
 
     @property
@@ -35,6 +34,10 @@ class BaseConfig(object):
         if self._env is None:
             self._env = Env(**self.types)
         return self._env
+
+    @property
+    def settings(self):
+        return self.get_settings()
 
     @property
     def app_name(self):
@@ -213,6 +216,7 @@ class Config(BaseConfig):
             'SITE_DOMAIN': self.site_url.netloc,
             'APP_NAME': self.env('DJCORE_APP_NAME'),
             'APP_CONF': self.env('DJCORE_APP_CONF'),
+            'CONFIG': self,
         })
         conf.SITE_NAME = self.get_env('DJCORE_SITE_NAME', conf.APP_NAME)
         return conf
@@ -297,3 +301,7 @@ class Config(BaseConfig):
                     'mailgun.%s' % self.site_url.hostname),
             }
         return conf
+
+
+def get_conf():
+    return BaseConfig().app_conf()

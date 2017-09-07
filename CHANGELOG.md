@@ -1,4 +1,5 @@
 # DEV
+- Update relationship between config and settings
 # 0.0.4
 - Update celery config defaults with prefix
 - Add default SSL forwarding header for SSL behind proxy detection
