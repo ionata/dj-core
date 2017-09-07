@@ -1,4 +1,6 @@
 # DEV
+- Update anymail backend
+- Add second requirements file for defaults
 - Update relationship between config and settings
 # 0.0.4
 - Update celery config defaults with prefix
