@@ -88,7 +88,7 @@ class Config(BaseConfig):
             'DJCORE_CSRF_COOKIE_PATH': '/backend/',
             'DJCORE_CSRF_COOKIE_SECURE': True,
             'DJCORE_DEFAULT_FILE_STORAGE': 'dj_core.storage.MediaS3',
-            'DJCORE_EMAIL_BACKEND': 'anymail.backends.mailgun.MailgunBackend',
+            'DJCORE_EMAIL_BACKEND': 'anymail.backends.mailgun.EmailBackend',
             'DJCORE_INTERNAL_IPS': ['127.0.0.1'],
             'DJCORE_LANGUAGE_CODE': 'en-AU',
             'DJCORE_LOGIN_URL': '/backend/login/',
@@ -237,16 +237,18 @@ class Config(BaseConfig):
             'django.contrib.messages',
             'django.contrib.staticfiles',
             'django.contrib.sites',
-        ] + [x for x in [
-            'minimal_user',
-            'corsheaders',
-            'anymail',
-            'django_extensions',
-            'storages',
-        ] if _can_import(x)] + ([
-            'debug_toolbar',
-            'debug_toolbar_line_profiler',
-        ] if self.djdt_enabled else [])
+        ] + [
+            x for x in [
+                'minimal_user',
+                'corsheaders',
+                'anymail',
+                'django_extensions',
+                'storages',
+            ] + ([
+                'debug_toolbar',
+            ] if self.djdt_enabled else [])
+            if _can_import(x)
+        ]
 
     def get_middleware(self, settings):  # pylint: disable=unused-argument
         return ([
@@ -293,7 +295,7 @@ class Config(BaseConfig):
                 'DJCORE_EMAIL_FROM',
                 'no-reply@{}'.format(self.site_url.hostname)),
         })
-        if settings.EMAIL_BACKEND == 'anymail.backends.mailgun.MailgunBackend':
+        if settings.EMAIL_BACKEND == 'anymail.backends.mailgun.EmailBackend':
             conf.ANYMAIL = {
                 'MAILGUN_API_KEY': self.env.str('DJCORE_MAILGUN_API_KEY'),
                 'MAILGUN_SENDER_DOMAIN': self.env.str(
