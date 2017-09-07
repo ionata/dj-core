@@ -15,7 +15,7 @@ def _read(filename, as_lines=True):
 
 setup(
     name='dj-core',
-    version='0.0.4',
+    version='0.0.5',
     description='A self-contained and extensible Django environment',
     long_description=_read('README.md', as_lines=False),
     author='Ionata Digital',
@@ -24,7 +24,7 @@ setup(
     packages=find_packages('src'),
     install_requires=_read('requirements-production.txt'),
     extras_require={
-        'defaults': _read('requirements-default.txt'),
+        'defaults': _read('requirements-defaults.txt'),
     },
     package_dir={'': 'src'},
     include_package_data=True,

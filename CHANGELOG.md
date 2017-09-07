@@ -1,4 +1,5 @@
 # DEV
+# 0.0.5
 - Add psycopg2 as default db backend
 - Update anymail backend
 - Add second requirements file for defaults
