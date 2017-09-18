@@ -2,12 +2,21 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from importlib import import_module
+from operator import attrgetter as ga
 from os import path
 
-from django.utils import six
-from environ import Env
+# pylint: disable=no-name-in-module,import-error
+from django.utils.six.moves.urllib.parse import urlparse
 
-from dj_core.utils import AttrDict
+from dj_core.utils import (
+    AttrDict, DjCoreEnv as Env, EmailList, Undefined, import_from_string)
+
+
+UNDEFINED = Undefined()
+
+
+def _fmt(attr, template):
+    return lambda c: template.format(ga(attr)(c))
 
 
 def _can_import(app_name):
@@ -18,218 +27,108 @@ def _can_import(app_name):
     return True
 
 
+def _installed(app_name, if_true, if_false):
+    return lambda c: if_true if app_name in c.INSTALLED_APPS else if_false
+
+
+def _docpath(conf_key, folder):
+    return lambda c: path.join(getattr(c, conf_key), folder)
+
+
+class DefaultProxy(object):
+    def __init__(self, typ, func):
+        self.typ = typ if isinstance(typ, type) else type(typ)
+        self.func = func
+
+
+def get_types(env_dict):
+    return {k: (getattr(v, 'typ', type(v)), v) for k, v in env_dict.items()}
+
+
 class BaseConfig(object):
-    defaults = {
-        'DJCORE_APP_NAME': 'dj_core',
-        'DJCORE_APP_CONF': '',
-        'DJCORE_DEBUG': False,
-    }
+    base_defaults = AttrDict([
+        ('APP_NAME', 'dj_core'),
+        ('APP_CONF', ''),
+        ('DEBUG', False),
+    ])
+    defaults = base_defaults.copy()
+    defaults_dev = AttrDict()
 
-    def __init__(self, *args, **kwargs):
-        self._env = None
+    def __init__(self, conf_name=None, *args, **kwargs):
         super(BaseConfig, self).__init__(*args, **kwargs)
+        self._env = None
+        self._conf = None
+        self._defaults = None
+        env = Env(**get_types(self.base_defaults))
+        self.debug = env('DEBUG')
+        if conf_name is None:
+            self.app_name = env('APP_NAME')
+            conf_name = env('APP_CONF') or '%s.config.Config' % self.app_name
+        else:
+            self.app_name = conf_name.split('.')[0]
+        self.app_conf = import_from_string(conf_name)
 
-    @property
-    def env(self):
+    def get_defaults(self):
+        if self._defaults is None:
+            self._defaults = self.defaults.copy()
+            if self.debug:
+                self._defaults.update(self.defaults_dev.copy())
+        return self._defaults
+
+    def env(self, key, default, conf):
         if self._env is None:
-            self._env = Env(**self.types)
-        return self._env
+            self._env = Env(**get_types(self.get_defaults()))
+        val = self._env(key, default=UNDEFINED)
+        if val is UNDEFINED:
+            val = default
+        if isinstance(val, DefaultProxy):
+            func = val.func if callable(val.func) else getattr(self, val.func)
+            val = func(conf)
+        return val
+
+    def get_settings(self):
+        conf = AttrDict()
+        for key, default in self.get_defaults().items():
+            parent = conf
+            key = key.strip('_')
+            if '__' in key:
+                parts = key.split('__')
+                for part in parts[:-1]:
+                    if part not in parent:
+                        parent[part] = AttrDict()
+                    parent = parent[part]
+                key = parts[-1]
+            parent[key] = self.env(key, default, conf)
+        return conf
 
     @property
     def settings(self):
-        return self.get_settings()
-
-    @property
-    def app_name(self):
-        return self.env('DJCORE_APP_NAME')
-
-    @property
-    def app_conf_str(self):
-        val = self.env('DJCORE_APP_CONF')
-        if val == '':
-            val = '{}.config.Config'.format(self.app_name)
-        return val.replace('-', '_')
-
-    @property
-    def app_conf(self):
-        module, conf = self.app_conf_str.rsplit('.', 1)
-        return getattr(import_module(module), conf)
-
-    @property
-    def debug(self):
-        return Env().str('DJCORE_DEBUG', False)
-
-    @property
-    def types(self):
-        return {k: (type(v), v) for k, v in self.get_defaults().items()}
-
-    def get_defaults(self):  # pylint: disable=no-self-use
-        return self.defaults
-
-    def get_settings(self):  # pylint: disable=no-self-use
-        return AttrDict({'DEBUG': self.env('DJCORE_DEBUG')})
+        if self._conf is None:
+            self._conf = self.get_settings()
+        return self._conf
 
 
 class Config(BaseConfig):
-    defaults_dict = AttrDict({
-        'simple': {
-            'DJCORE_ALLOWED_HOSTS': ['localhost'],
-            'DJCORE_ANONYMOUS_USER_ID': -1,
-            'DJCORE_AUTHENTICATION_BACKENDS': ['django.contrib.auth.backends.ModelBackend'],
-            'DJCORE_AUTH_USER_MODEL': 'minimal_user.User',
-            'DJCORE_AWS_ACCESS_KEY_ID': '',
-            'DJCORE_AWS_S3_ENDPOINT_URL': '',
-            'DJCORE_AWS_S3_REGION_NAME': '',
-            'DJCORE_AWS_SECRET_ACCESS_KEY': '',
-            'DJCORE_AWS_STORAGE_BUCKET_NAME': '',
-            'DJCORE_CELERY_BROKER_TRANSPORT_OPTIONS': {'visibility_timeout': 3600},  # 1 hour.
-            'DJCORE_CELERY_BROKER_URL': 'redis://',
-            'DJCORE_CORS_ORIGIN_ALLOW_ALL': False,
-            'DJCORE_CSRF_COOKIE_PATH': '/backend/',
-            'DJCORE_CSRF_COOKIE_SECURE': True,
-            'DJCORE_DEFAULT_FILE_STORAGE': 'dj_core.storage.MediaS3',
-            'DJCORE_EMAIL_BACKEND': 'anymail.backends.mailgun.EmailBackend',
-            'DJCORE_INTERNAL_IPS': ['127.0.0.1'],
-            'DJCORE_LANGUAGE_CODE': 'en-AU',
-            'DJCORE_LOGIN_URL': '/backend/login/',
-            'DJCORE_MEDIA_URL': '/assets/media/',
-            'DJCORE_ROOT_URLCONF': 'dj_core.urls',
-            'DJCORE_SECRET_KEY': '',
-            'DJCORE_SECURE_PROXY_SSL_HEADER': ('HTTP_X_FORWARDED_PROTO', 'https'),
-            'DJCORE_SESSION_COOKIE_PATH': '/backend/',
-            'DJCORE_SESSION_COOKIE_SECURE': True,
-            'DJCORE_SITE_ID': 1,
-            'DJCORE_STATICFILES_STORAGE': 'dj_core.storage.StaticS3',
-            'DJCORE_STATIC_URL': '/assets/static/',
-            'DJCORE_TIME_ZONE': 'UTC',
-            'DJCORE_USE_I18N': True,
-            'DJCORE_USE_L10N': True,
-            'DJCORE_USE_TZ': True,
-            'DJCORE_VAR_ROOT': '/var',
-            'DJCORE_WSGI_APPLICATION': 'dj_core.wsgi.application',
-        },
-        'djcore': {
-            'DJCORE_ADMIN_ENABLED': True,
-            'DJCORE_ADMIN_USER': {},
-            'DJCORE_FRONTEND_URL': 'https://localhost',
-            'DJCORE_SITE_URL': 'https://localhost',
-            'DJCORE_USE_DJDT': False,
-            'DJCORE_WHITELIST_SITE_URL': True,
-        },
-        'complex': {
-            'DJCORE_ADMINS': [],
-            'DJCORE_MANAGERS': [],
-            'DJCORE_SITE_NAME': '',
-        },
-        'proxied': AttrDict([  # order is important
-            ('DJCORE_CELERY_APP_NAME', ('', lambda conf: conf.DJCORE.APP_NAME)),
-            ('DJCORE_CELERY_RESULT_BACKEND', ('', lambda conf: conf.CELERY_BROKER_URL)),
-            ('DJCORE_CORS_ORIGIN_WHITELIST', ([], lambda conf: conf.ALLOWED_HOSTS)),
-            ('DJCORE_CSRF_TRUSTED_ORIGINS', ([], lambda conf: conf.CORS_ORIGIN_WHITELIST)),
-            ('DJCORE_CACHE_ROOT', ('', lambda conf: path.join(conf.VAR_ROOT, 'cache'))),
-            ('DJCORE_LOG_ROOT', ('', lambda conf: path.join(conf.VAR_ROOT, 'log'))),
-            ('DJCORE_DOCUMENT_ROOT', ('', lambda conf: path.join(conf.VAR_ROOT, 'www'))),
-            ('DJCORE_STATIC_ROOT', ('', lambda conf: path.join(conf.DOCUMENT_ROOT, 'static'))),
-            ('DJCORE_MEDIA_ROOT', ('', lambda conf: path.join(conf.DOCUMENT_ROOT, 'media'))),
-        ]),
-        'dev': {
-            'DJCORE_ADMIN_USER': {'email': 'test@example.com', 'password': 'password'},
-            'DJCORE_ALLOWED_HOSTS': ['*'],
-            'DJCORE_AWS_ACCESS_KEY_ID': 'djangos3',
-            'DJCORE_AWS_S3_ENDPOINT_URL': 'http://minio:9000',
-            'DJCORE_AWS_SECRET_ACCESS_KEY': 'djangos3',
-            'DJCORE_AWS_STORAGE_BUCKET_NAME': 'django',
-            'DJCORE_CELERY_BROKER_URL': 'redis://redis',
-            'DJCORE_CELERY_RESULT_BACKEND': 'redis://redis',
-            'DJCORE_CORS_ORIGIN_ALLOW_ALL': True,
-            'DJCORE_CSRF_COOKIE_SECURE': False,
-            'DJCORE_DATABASE_URL': 'postgis://django:django@db:5432/django',
-            'DJCORE_EMAIL_BACKEND': 'django.core.mail.backends.console.EmailBackend',
-            'DJCORE_SESSION_COOKIE_SECURE': False,
-            'DJCORE_TEMPLATE_DEBUG': True,
-            'DJCORE_USE_DJDT': True,
-        },
-    })
+    defaults = BaseConfig.defaults.copy()
+    defaults.update([
+        # dj_core internal settings
+        ('DJCORE__APP_NAME', DefaultProxy('', ga('APP_NAME'))),
+        ('DJCORE__APP_CONF', DefaultProxy('', ga('APP_CONF'))),
+        ('DJCORE__ADMIN_ENABLED', True),
+        ('DJCORE__ADMIN_USER', {}),
+        ('DJCORE__FRONTEND_URL', 'https://localhost'),
+        ('DJCORE__SITE_URL', 'https://localhost'),
+        ('DJCORE__WHITELIST_SITE_URL', True),
+        ('DJCORE__URL', DefaultProxy('', lambda c: (urlparse(c.DJCORE.SITE_URL)))),
+        ('DJCORE__SITE_NAME', DefaultProxy('', ga('DJCORE.APP_NAME'))),
+        ('DJCORE__SITE_DOMAIN', DefaultProxy('', lambda c: c.DJCORE.URL.netloc)),
+        ('DJCORE__USE_DJDT', False),
+        ('DJCORE__DJDT_ENABLED', DefaultProxy(False, lambda c: (
+            c.DEBUG and _can_import('debug_toolbar') and c.DJCORE.USE_DJDT))),
 
-    @property
-    def djdt_enabled(self):
-        return self.debug and self.env('DJCORE_USE_DJDT')
-
-    @property
-    def site_url(self):
-        return six.moves.urllib.parse.urlparse(self.env('DJCORE_SITE_URL'))  # pylint: disable=no-member
-
-    def get_env(self, key, default):
-        val = self.env.get_value(key, type(default), default)
-        return default if val in [[], None, ''] else val
-
-    def get_env_vals(self, keys):
-        return AttrDict({key[7:]: self.env(key) for key in keys})  # remove DJCORE_
-
-    def get_defaults(self):
-        defaults = super(Config, self).get_defaults()
-        defaults.update(self.defaults_dict.simple)
-        defaults.update(self.defaults_dict.djcore)
-        defaults.update(self.defaults_dict.complex)
-        defaults.update({k: v[0] for k, v in self.defaults_dict.proxied.items()})
-        if self.debug:
-            defaults.update(self.defaults_dict.dev)
-        return defaults
-
-    def get_settings(self):
-        settings = super(Config, self).get_settings()
-        settings.update(self.get_core_settings())
-        settings.DJCORE = self.get_djcore_settings(settings)
-        self.apply_proxied_settings(settings)
-        settings.DATABASES = self.get_databases(settings)
-        settings.INSTALLED_APPS = self.get_installed_apps(settings)
-        settings.MIDDLEWARE = self.get_middleware(settings)
-        settings.TEMPLATES = self.get_templates(settings)
-        settings.update(self.get_email_settings(settings))
-        return settings
-
-    def get_core_settings(self):
-        conf = self.get_env_vals(self.defaults_dict.simple)
-        if self.djdt_enabled:
-            conf.DEBUG_TOOLBAR_CONFIG = {
-                'SHOW_COLLAPSED': True,
-                'SHOW_TOOLBAR_CALLBACK': lambda request: True
-            }
-        return conf
-
-    def apply_proxied_settings(self, conf):
-        conf.ALLOWED_HOSTS = conf.ALLOWED_HOSTS + conf.INTERNAL_IPS
-        for key, (_, call) in self.defaults_dict.proxied.items():
-            conf[key[7:]] = call(conf)
-        if self.env('DJCORE_WHITELIST_SITE_URL'):
-            conf.ALLOWED_HOSTS += [self.site_url.netloc]
-            conf.CSRF_TRUSTED_ORIGINS += [
-                x for x in conf.ALLOWED_HOSTS
-                if x not in conf.CSRF_TRUSTED_ORIGINS]
-            conf.CORS_ORIGIN_WHITELIST += [
-                x for x in conf.CSRF_TRUSTED_ORIGINS
-                if x not in conf.CORS_ORIGIN_WHITELIST]
-
-    def get_djcore_settings(self, settings):  # pylint: disable=unused-argument
-        conf = self.get_env_vals(self.defaults_dict.djcore)
-        conf.update({
-            'SITE_DOMAIN': self.site_url.netloc,
-            'APP_NAME': self.env('DJCORE_APP_NAME'),
-            'APP_CONF': self.env('DJCORE_APP_CONF'),
-            'CONFIG': self,
-        })
-        conf.SITE_NAME = self.get_env('DJCORE_SITE_NAME', conf.APP_NAME)
-        return conf
-
-    def get_databases(self, settings):  # pylint: disable=unused-argument
-        return {'default': self.env.db('DJCORE_DATABASE_URL')}
-
-    def get_installed_apps(self, settings):
-        return [
-            settings.DJCORE.APP_NAME,
+        # core settings (utilise Config methods)
+        ('INSTALLED_APPS_REQUIRED', [
             'dj_core',
-
-            # Django apps
             'django.contrib.admin',
             'django.contrib.auth',
             'django.contrib.contenttypes',
@@ -237,27 +136,126 @@ class Config(BaseConfig):
             'django.contrib.messages',
             'django.contrib.staticfiles',
             'django.contrib.sites',
-        ] + [
-            x for x in [
-                'minimal_user',
-                'corsheaders',
-                'anymail',
-                'django_extensions',
-                'storages',
-            ] + ([
-                'debug_toolbar',
-            ] if self.djdt_enabled else [])
-            if _can_import(x)
-        ]
+        ]),
+        ('INSTALLED_APPS_OPTIONAL', [
+            'minimal_user',
+            'corsheaders',
+            'anymail',
+            'django_extensions',
+            'storages',
+        ]),
+        ('DATABASE_URL', ''),
+        ('INSTALLED_APPS', DefaultProxy([], 'get_installed_apps')),
+        ('DATABASES', DefaultProxy({}, 'get_databases')),
+        ('MIDDLEWARE', DefaultProxy({}, 'get_middleware')),
+        ('TEMPLATES', DefaultProxy({}, 'get_templates')),
+        ('ALLOWED_HOSTS', DefaultProxy([], 'get_allowed_hosts')),
 
-    def get_middleware(self, settings):  # pylint: disable=unused-argument
-        return ([
-            'debug_toolbar.middleware.DebugToolbarMiddleware'
-        ] if self.djdt_enabled else []) + [
-            'django.contrib.sessions.middleware.SessionMiddleware',
-        ] + ([
-            'corsheaders.middleware.CorsMiddleware'
-        ] if _can_import('corsheaders') else []) + [
+        # simple settings (in case overrides want to proxy core settings)
+        ('ADMINS', EmailList()),
+        ('ANONYMOUS_USER_ID', -1),
+        ('AUTHENTICATION_BACKENDS', ['django.contrib.auth.backends.ModelBackend']),
+        ('AWS_ACCESS_KEY_ID', ''),
+        ('AWS_S3_ENDPOINT_URL', ''),
+        ('AWS_S3_REGION_NAME', ''),
+        ('AWS_SECRET_ACCESS_KEY', ''),
+        ('AWS_STORAGE_BUCKET_NAME', ''),
+        ('CELERY_BROKER_TRANSPORT_OPTIONS', {'visibility_timeout': 3600}),  # 1 hour.
+        ('CELERY_BROKER_URL', 'redis://'),
+        ('CORS_ORIGIN_ALLOW_ALL', False),
+        ('CSRF_COOKIE_PATH', '/backend/'),
+        ('CSRF_COOKIE_SECURE', True),
+        ('INTERNAL_IPS', ['127.0.0.1']),
+        ('LANGUAGE_CODE', 'en-AU'),
+        ('LOGIN_URL', '/backend/login/'),
+        ('MAILGUN_API_KEY', ''),
+        ('MANAGERS', EmailList()),
+        ('MEDIA_URL', '/assets/media/'),
+        ('ROOT_URLCONF', 'dj_core.urls'),
+        ('SECRET_KEY', ''),
+        ('SECURE_PROXY_SSL_HEADER', ('HTTP_X_FORWARDED_PROTO', 'https')),
+        ('SESSION_COOKIE_PATH', '/backend/'),
+        ('SESSION_COOKIE_SECURE', True),
+        ('SITE_ID', 1),
+        ('STATIC_URL', '/assets/static/'),
+        ('TIME_ZONE', 'UTC'),
+        ('USE_I18N', True),
+        ('USE_L10N', True),
+        ('USE_TZ', True),
+        ('VAR_ROOT', '/var'),
+        ('WSGI_APPLICATION', 'dj_core.wsgi.application'),
+
+        # proxied settings
+        ('CELERY_APP_NAME', DefaultProxy('', ga('DJCORE.APP_NAME'))),
+        ('CELERY_RESULT_BACKEND', DefaultProxy('', ga('CELERY_BROKER_URL'))),
+        ('CORS_ORIGIN_WHITELIST', DefaultProxy([], ga('ALLOWED_HOSTS'))),
+        ('CSRF_TRUSTED_ORIGINS', DefaultProxy([], ga('CORS_ORIGIN_WHITELIST'))),
+        ('CACHE_ROOT', DefaultProxy('', _docpath('VAR_ROOT', 'cache'))),
+        ('LOG_ROOT', DefaultProxy('', _docpath('VAR_ROOT', 'log'))),
+        ('DOCUMENT_ROOT', DefaultProxy('', _docpath('VAR_ROOT', 'www'))),
+        ('STATIC_ROOT', DefaultProxy('', _docpath('DOCUMENT_ROOT', 'static'))),
+        ('MEDIA_ROOT', DefaultProxy('', _docpath('DOCUMENT_ROOT', 'media'))),
+        ('EMAIL_SUBJECT_PREFIX', DefaultProxy('', _fmt('DJCORE.APP_NAME', '[Django - {}] '))),
+        ('DEFAULT_FROM_EMAIL', DefaultProxy('', _fmt('DJCORE.URL.hostname', 'no-reply@{}'))),
+        ('MAILGUN_SENDER_DOMAIN', DefaultProxy('', _fmt('DJCORE.URL.hostname', 'mailgun.{}'))),
+        ('AUTH_USER_MODEL', DefaultProxy('', _installed(
+            'minimal_user', 'minimal_user.User', 'auth.User'))),
+        ('EMAIL_BACKEND', DefaultProxy('', _installed(
+            'anymail', 'anymail.backends.mailgun.EmailBackend',
+            'django.core.mail.backends.smtp.EmailBackend'
+        ))),
+        ('DEFAULT_FILE_STORAGE', DefaultProxy('', _installed(
+            'storages', 'dj_core.storage.MediaS3',
+            'django.core.files.storage.FileSystemStorage'))),
+        ('STATICFILES_STORAGE', DefaultProxy('', _installed(
+            'storages', 'dj_core.storage.StaticS3',
+            'django.core.files.storage.FileSystemStorage'))),
+    ])
+    defaults_dev = AttrDict([
+        ('ALLOWED_HOSTS', ['*']),
+        ('AWS_ACCESS_KEY_ID', 'djangos3'),
+        ('AWS_S3_ENDPOINT_URL', 'http://minio:9000'),
+        ('AWS_SECRET_ACCESS_KEY', 'djangos3'),
+        ('AWS_STORAGE_BUCKET_NAME', 'django'),
+        ('CELERY_BROKER_URL', 'redis://redis'),
+        ('CELERY_RESULT_BACKEND', 'redis://redis'),
+        ('CORS_ORIGIN_ALLOW_ALL', True),
+        ('CSRF_COOKIE_SECURE', False),
+        ('DATABASE_URL', 'postgis://django:django@db:5432/django'),
+        ('DEBUG_TOOLBAR_CONFIG', {'SHOW_COLLAPSED': True, 'SHOW_TOOLBAR_CALLBACK': lambda request: True}),
+        ('DJCORE__ADMIN_USER', {'email': 'test@example.com', 'password': 'password'}),
+        ('DJCORE__USE_DJDT', True),
+        ('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend'),
+        ('SECRET_KEY', 'super_secret_secret_key'),
+        ('SESSION_COOKIE_SECURE', False),
+    ])
+
+    def get_allowed_hosts(self, conf):  # pylint: disable=no-self-use
+        return ['localhost'] + (
+            [conf.DJCORE.URL.netloc]
+            if conf.DJCORE.WHITELIST_SITE_URL else [])
+
+    def get_databases(self, conf):  # pylint: disable=unused-argument,no-self-use
+        return {'default': Env.db_url_config(conf.DATABASE_URL)}
+
+    def get_installed_apps(self, conf):  # pylint: disable=no-self-use
+        return (lambda apps: (
+            [] if conf.DJCORE.APP_NAME in apps else [conf.DJCORE.APP_NAME]
+        ) + apps)(
+            conf.INSTALLED_APPS_REQUIRED.copy() + [
+                x for x in conf.INSTALLED_APPS_OPTIONAL if _can_import(x)
+            ] + (['debug_toolbar'] if conf.DJCORE.DJDT_ENABLED else []))
+
+    def get_middleware(self, conf):  # pylint: disable=no-self-use
+        return (
+            _installed(
+                'debug_toolbar',
+                ['debug_toolbar.middleware.DebugToolbarMiddleware'], [])(conf)
+        ) + ['django.contrib.sessions.middleware.SessionMiddleware'] + (
+            _installed(
+                'corsheaders',
+                ['corsheaders.middleware.CorsMiddleware'], [])(conf)
+        ) + [
             'django.middleware.common.CommonMiddleware',
             'django.middleware.csrf.CsrfViewMiddleware',
             'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -266,7 +264,7 @@ class Config(BaseConfig):
             'django.middleware.security.SecurityMiddleware',
         ]
 
-    def get_templates(self, settings):  # pylint: disable=no-self-use,unused-argument
+    def get_templates(self, conf):  # pylint: disable=no-self-use,unused-argument
         return [{
             'BACKEND': 'django.template.backends.django.DjangoTemplates',
             'APP_DIRS': True,
@@ -284,26 +282,6 @@ class Config(BaseConfig):
             },
         }]
 
-    def get_email_settings(self, settings):
-        conf = AttrDict({
-            'EMAIL_SUBJECT_PREFIX': self.env.str(
-                'DJCORE_EMAIL_SUBJECT_PREFIX',
-                '[Django - {}] '.format(settings.DJCORE.APP_NAME)),
-            'ADMINS': [x.split(':') for x in self.env('DJCORE_ADMINS')],
-            'MANAGERS': [x.split(':') for x in self.env('DJCORE_MANAGERS')],
-            'DEFAULT_FROM_EMAIL': self.env.str(
-                'DJCORE_EMAIL_FROM',
-                'no-reply@{}'.format(self.site_url.hostname)),
-        })
-        if settings.EMAIL_BACKEND == 'anymail.backends.mailgun.EmailBackend':
-            conf.ANYMAIL = {
-                'MAILGUN_API_KEY': self.env.str('DJCORE_MAILGUN_API_KEY'),
-                'MAILGUN_SENDER_DOMAIN': self.env.str(
-                    'DJCORE_MAILGUN_SENDER_DOMAIN',
-                    'mailgun.%s' % self.site_url.hostname),
-            }
-        return conf
 
-
-def get_conf():
-    return BaseConfig().app_conf()
+def get_conf(conf_name=None):
+    return BaseConfig(conf_name).app_conf()
