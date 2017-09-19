@@ -212,7 +212,7 @@ class Config(BaseConfig):
             'django.core.files.storage.FileSystemStorage'))),
         ('STATICFILES_STORAGE', DefaultProxy('', _installed(
             'storages', 'dj_core.storage.StaticS3',
-            'django.core.files.storage.FileSystemStorage'))),
+            'django.contrib.staticfiles.storage.StaticFilesStorage'))),
     ])
     defaults_dev = AttrDict([
         ('ALLOWED_HOSTS', ['*']),
