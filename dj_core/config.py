@@ -86,19 +86,22 @@ class BaseConfig(object):
             val = func(conf)
         return val
 
+    @staticmethod
+    def _set(conf, key, val):
+        parent = conf
+        if '__' in key:
+            parts = key.split('__')
+            for part in parts[:-1]:
+                if part not in parent:
+                    parent[part] = AttrDict()
+                parent = parent[part]
+            key = parts[-1]
+        parent[key] = val
+
     def get_settings(self):
         conf = AttrDict()
         for key, default in self.get_defaults().items():
-            parent = conf
-            key = key.strip('_')
-            if '__' in key:
-                parts = key.split('__')
-                for part in parts[:-1]:
-                    if part not in parent:
-                        parent[part] = AttrDict()
-                    parent = parent[part]
-                key = parts[-1]
-            parent[key] = self.env(key, default, conf)
+            self._set(conf, key.strip('_'), self.env(key, default, conf))
         return conf
 
     @property
