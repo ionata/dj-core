@@ -1,5 +1,6 @@
 # DEV
 # 0.0.6
+- Add `FRONTEND_URL` default of `DJCORE.SITE_URL`
 - Make celery import optional
 - Add pre-import to stop alpine segfaults
 - Fix DJDT enabling setting use in urls
