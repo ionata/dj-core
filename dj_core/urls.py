@@ -14,7 +14,7 @@ def _admin_urls():
 
 
 def _djdt_urls():
-    if not (settings.DEBUG and settings.DJCORE.USE_DJDT):
+    if not settings.DJCORE.DJDT_ENABLED:
         return []
     import debug_toolbar
     return [url(r'^backend/__debug__/', include(debug_toolbar.urls))]

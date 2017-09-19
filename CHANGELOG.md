@@ -1,5 +1,6 @@
 # DEV
 # 0.0.6
+- Fix DJDT enabling setting use in urls
 - Fix nested env var retrieval
 - Flatten settings evaluation
 - Move module to top-level package
