@@ -36,7 +36,7 @@ def _docpath(conf_key, folder):
 
 
 class DefaultProxy(object):
-    def __init__(self, typ, func):
+    def __init__(self, typ, func=None):
         self.typ = typ if isinstance(typ, type) else type(typ)
         self.func = func
 
@@ -82,7 +82,11 @@ class BaseConfig(object):
         if val is UNDEFINED:
             val = default
         if isinstance(val, DefaultProxy):
-            func = val.func if callable(val.func) else getattr(self, val.func)
+            func = val.func
+            if isinstance(val.func, str):
+                func = getattr(self, val.func, val.func)
+            if func is None:
+                raise ValueError('No value for %s' % self._env.prefix(key))
             val = func(conf)
         return val
 
