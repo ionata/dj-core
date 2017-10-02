@@ -1,4 +1,5 @@
 # DEV
+# 0.0.7
 - Fail loudly when DefaultProxy.func is None
 # 0.0.6
 - Add `FRONTEND_URL` default of `DJCORE.SITE_URL`
