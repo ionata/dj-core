@@ -1,4 +1,5 @@
 # DEV
+- Add ability to pass default values to get_admin()
 - Make skeleton_data work with custom USERNAME_FIELD
 # 0.0.7
 - Fail loudly when DefaultProxy.func is None

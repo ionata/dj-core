@@ -5,12 +5,15 @@ from django.contrib.auth import get_user_model
 from django.db.utils import IntegrityError
 
 
-def get_admin():
+def get_admin(default_defaults=None):
     admin = settings.DJCORE.ADMIN_USER
     model = get_user_model()
     if model is None:
         raise ImportError("Cannot import the specified User model")
     username = model.USERNAME_FIELD
+    defaults = {x: True for x in ['is_staff', 'is_superuser', 'is_active']}
+    if default_defaults is not None:
+        defaults.update(default_defaults)
     defaults = {x: True for x in ['is_staff', 'is_superuser', 'is_active']}
     defaults.update({
         k: v for k, v in admin.items() if k not in [username, 'password']})
