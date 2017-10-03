@@ -1,4 +1,5 @@
 # DEV
+# 0.0.8
 - Add ability to pass default values to get_admin()
 - Make skeleton_data work with custom USERNAME_FIELD
 # 0.0.7
