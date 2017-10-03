@@ -10,11 +10,13 @@ def get_admin():
     model = get_user_model()
     if model is None:
         raise ImportError("Cannot import the specified User model")
+    username = model.USERNAME_FIELD
     defaults = {x: True for x in ['is_staff', 'is_superuser', 'is_active']}
     defaults.update({
-        k: v for k, v in admin.items() if k not in ['email', 'password']})
+        k: v for k, v in admin.items() if k not in [username, 'password']})
     try:
-        user, new = model.objects.get_or_create(email=admin['email'], defaults=defaults)
+        values = {username: admin[username], 'defaults': defaults}
+        user, new = model.objects.get_or_create(**values)
     except IntegrityError:
         raise AttributeError("Admin user not found or able to be created.")
     if new:

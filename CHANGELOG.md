@@ -1,4 +1,5 @@
 # DEV
+- Make skeleton_data work with custom USERNAME_FIELD
 # 0.0.7
 - Fail loudly when DefaultProxy.func is None
 # 0.0.6
