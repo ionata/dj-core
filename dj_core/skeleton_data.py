@@ -14,7 +14,6 @@ def get_admin(default_defaults=None):
     defaults = {x: True for x in ['is_staff', 'is_superuser', 'is_active']}
     if default_defaults is not None:
         defaults.update(default_defaults)
-    defaults = {x: True for x in ['is_staff', 'is_superuser', 'is_active']}
     defaults.update({
         k: v for k, v in admin.items() if k not in [username, 'password']})
     try:

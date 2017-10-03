@@ -1,4 +1,5 @@
 # DEV
+- Fix bug that overrides defaults in get_admin()
 # 0.0.8
 - Add ability to pass default values to get_admin()
 - Make skeleton_data work with custom USERNAME_FIELD
