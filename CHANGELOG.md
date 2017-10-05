@@ -1,4 +1,5 @@
 # DEV
+# 0.0.10
 - Update to django-anymail~=1.0.0
 # 0.0.9
 - Fix bug that overrides defaults in get_admin()
