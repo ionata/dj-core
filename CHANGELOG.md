@@ -1,4 +1,5 @@
 # DEV
+# 0.0.11
 - Add autodiscover for celery tasks
 # 0.0.10
 - Update to django-anymail~=1.0.0
