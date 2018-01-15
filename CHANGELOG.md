@@ -1,4 +1,5 @@
 # DEV
+- Remove Django 2.0 incompatible url config
 # 0.0.11
 - Add autodiscover for celery tasks
 # 0.0.10

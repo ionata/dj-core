@@ -10,7 +10,7 @@ def _admin_urls():
     if not settings.DJCORE.ADMIN_ENABLED:
         return []
     from django.contrib import admin
-    return [url(r'^backend/django-admin/', include(admin.site.urls))]
+    return [url(r'^backend/django-admin/', admin.site.urls)]
 
 
 def _djdt_urls():
