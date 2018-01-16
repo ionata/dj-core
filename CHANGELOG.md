@@ -1,4 +1,5 @@
 # DEV
+- Update dependencies in requirements-defaults
 - Remove Django 2.0 incompatible url config
 # 0.0.11
 - Add autodiscover for celery tasks

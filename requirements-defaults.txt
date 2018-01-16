@@ -1,9 +1,9 @@
-boto3==1.4.8
+boto3~=1.5.0   # pyup: ignore
 celery[redis]==4.1.0
 django-anymail[mailgun]==1.2
 django-cors-headers==2.1.0
 django-debug-toolbar==1.9.1
 django-extensions==1.9.9
-django-minimal-user==0.0.1
+django-minimal-user==0.0.2
 django-storages==1.6.5
 psycopg2~=2.0  # pyup: ignore
