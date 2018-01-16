@@ -15,7 +15,7 @@ def _read(filename, as_lines=True):
 
 setup(
     name='dj-core',
-    version='0.0.11',
+    version='0.1.0',
     description='A self-contained and extensible Django environment',
     long_description=_read('README.md', as_lines=False),
     author='Ionata Digital',

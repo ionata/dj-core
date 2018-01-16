@@ -1,4 +1,5 @@
 # DEV
+# 0.1.0
 - Update dependencies in requirements-defaults
 - Remove Django 2.0 incompatible url config
 # 0.0.11
