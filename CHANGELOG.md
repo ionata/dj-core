@@ -1,4 +1,6 @@
 # DEV
+# 0.1.1
+- Add SERVER_EMAIL to default settings
 # 0.1.0
 - Update dependencies in requirements-defaults
 - Remove Django 2.0 incompatible url config
