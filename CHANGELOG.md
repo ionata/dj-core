@@ -1,4 +1,6 @@
 # DEV
+- Add django-storages' AWS_S3_CUSTOM_DOMAIN
+- Update dependencies in requirements
 # 0.1.1
 - Add SERVER_EMAIL to default settings
 # 0.1.0

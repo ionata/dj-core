@@ -165,6 +165,7 @@ class Config(BaseConfig):
         ('AWS_ACCESS_KEY_ID', ''),
         ('AWS_S3_ENDPOINT_URL', ''),
         ('AWS_S3_REGION_NAME', ''),
+        ('AWS_S3_CUSTOM_DOMAIN', ''),
         ('AWS_SECRET_ACCESS_KEY', ''),
         ('AWS_STORAGE_BUCKET_NAME', ''),
         ('CELERY_BROKER_TRANSPORT_OPTIONS', {'visibility_timeout': 3600}),  # 1 hour.
