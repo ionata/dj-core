@@ -1,4 +1,5 @@
 # DEV
+# 0.1.2
 - Add django-storages' AWS_S3_CUSTOM_DOMAIN
 - Update dependencies in requirements
 # 0.1.1
