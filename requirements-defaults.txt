@@ -1,6 +1,6 @@
 boto3~=1.5.0   # pyup: ignore
 celery[redis]==4.1.0
-django-anymail[mailgun]==1.2
+django-anymail[mailgun]==2.0
 django-cors-headers==2.2.0
 django-debug-toolbar==1.9.1
 django-extensions==1.9.9

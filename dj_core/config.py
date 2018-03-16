@@ -204,6 +204,7 @@ class Config(BaseConfig):
         ('MEDIA_ROOT', DefaultProxy('', _docpath('DOCUMENT_ROOT', 'media'))),
         ('EMAIL_SUBJECT_PREFIX', DefaultProxy('', _fmt('DJCORE.APP_NAME', '[Django - {}] '))),
         ('DEFAULT_FROM_EMAIL', DefaultProxy('', _fmt('DJCORE.URL.hostname', 'no-reply@{}'))),
+        ('SERVER_EMAIL', DefaultProxy('', _fmt('DJCORE.URL.hostname', 'no-reply+system@{}'))),
         ('MAILGUN_SENDER_DOMAIN', DefaultProxy('', _fmt('DJCORE.URL.hostname', 'mailgun.{}'))),
         ('AUTH_USER_MODEL', DefaultProxy('', _installed(
             'minimal_user', 'minimal_user.User', 'auth.User'))),
