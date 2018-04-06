@@ -1,16 +1,11 @@
 # pylint: disable=not-callable
-from __future__ import absolute_import, print_function, unicode_literals
-
 from importlib import import_module
 from operator import attrgetter as ga
 from os import path
+from urllib.parse import urlparse
 
-# pylint: disable=no-name-in-module,import-error
-from django.utils.six.moves.urllib.parse import urlparse
-
-from dj_core.utils import (
-    AttrDict, DjCoreEnv as Env, EmailList, Undefined, import_from_string)
-
+from dj_core.utils import DjCoreEnv as Env
+from dj_core.utils import AttrDict, EmailList, Undefined, import_from_string
 
 UNDEFINED = Undefined()
 
@@ -163,6 +158,7 @@ class Config(BaseConfig):
         ('ANONYMOUS_USER_ID', -1),
         ('AUTHENTICATION_BACKENDS', ['django.contrib.auth.backends.ModelBackend']),
         ('AWS_ACCESS_KEY_ID', ''),
+        ('AWS_AUTO_CREATE_BUCKET', False),
         ('AWS_S3_ENDPOINT_URL', ''),
         ('AWS_S3_REGION_NAME', ''),
         ('AWS_S3_CUSTOM_DOMAIN', ''),
@@ -223,6 +219,7 @@ class Config(BaseConfig):
     defaults_dev = AttrDict([
         ('ALLOWED_HOSTS', ['*']),
         ('AWS_ACCESS_KEY_ID', 'djangos3'),
+        ('AWS_AUTO_CREATE_BUCKET', True),
         ('AWS_S3_ENDPOINT_URL', 'http://minio:9000'),
         ('AWS_SECRET_ACCESS_KEY', 'djangos3'),
         ('AWS_STORAGE_BUCKET_NAME', 'django'),

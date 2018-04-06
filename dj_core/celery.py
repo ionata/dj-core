@@ -1,6 +1,4 @@
 """Bootstrap celery with Django's config"""
-from __future__ import absolute_import, print_function, unicode_literals
-
 from celery import Celery
 from django.conf import settings
 

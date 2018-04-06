@@ -1,7 +1,6 @@
 # dj-core
 [![PyPI](https://img.shields.io/pypi/pyversions/dj-core.svg)](https://pypi.org/project/dj-core/)
 [![PyPI](https://img.shields.io/pypi/v/dj-core.svg)](https://pypi.org/project/dj-core/)
-[![Updates](https://pyup.io/repos/github/ionata/dj-core/shield.svg)](https://pyup.io/repos/github/ionata/dj-core/)
 
 ## A self-contained and extensible django environment.
 The default configuration makes use of the following optional packages:

@@ -1,9 +1,7 @@
-from __future__ import absolute_import, print_function, unicode_literals
-
 from django.conf import settings
 from django.conf.urls import include, url
 
-from .utils import get_app_submodules
+from dj_core.utils import get_app_submodules
 
 
 def _admin_urls():

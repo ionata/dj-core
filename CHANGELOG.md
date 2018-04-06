@@ -1,4 +1,8 @@
 # DEV
+# 0.2.0
+- Remove py2k
+- Move to setup.cfg
+- Add django-storages' AWS_AUTO_CREATE_BUCKET
 # 0.1.2
 - Add django-storages' AWS_S3_CUSTOM_DOMAIN
 - Update dependencies in requirements
