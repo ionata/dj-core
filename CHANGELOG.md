@@ -1,4 +1,5 @@
 # DEV
+- Re-add importing of Celery
 # 0.2.0
 - Remove py2k
 - Move to setup.cfg
